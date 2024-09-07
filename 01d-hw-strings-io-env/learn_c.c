@@ -63,9 +63,13 @@ void part1() {
 
 	printf("===== Question 1 =====\n");
 	char s1[] = "hello";
-	int s1_len;
+	int s1_len = sizeof(s1);
+	printf("%d\n", s1_len);
 
 	printf("===== Question 2 =====\n");
+	memprint(s1, "%02x", s1_len);
+	memprint(s1, "%d", s1_len);
+	memprint(s1, "%c", s1_len);
 
 	printf("===== Question 3 (no code changes) =====\n");
 
@@ -73,20 +77,23 @@ void part1() {
 
 	printf("===== Question 5 =====\n");
 	char s2[10];
-	int s2_len;
+	int s2_len = sizeof(s2);
+	printf("%d\n", s2_len);
 
 	printf("===== Question 6 =====\n");
 	char *s3 = s1;
-	int s3_len;
+	int s3_len = sizeof(s3);
+	printf("%d\n", s3_len);
 
 	printf("===== Question 7 =====\n");
 	char *s4 = malloc(1024 * sizeof(char));
-	int s4_len;
+	int s4_len = sizeof(s4);
+	printf("%d\n", s4_len);
 
 	printf("===== Question 8 (no code changes) =====\n");
 
 	printf("===== Question 9 =====\n");
-
+	free(s4);
 }
 
 void part2() {
@@ -98,23 +105,111 @@ void part2() {
 	memcpy(s2, s1, sizeof(s1));
 
 	printf("===== Question 10 =====\n");
+	printf("Address of s1: %lu\n", (long unsigned int)&s1);
+	printf("Address of s2: %lu\n", (long unsigned int)&s2);
+	printf("Address of s3: %lu\n", (long unsigned int)&s3);
 
 	printf("===== Question 11 =====\n");
+	printf("Address of s1: %lu\n", (long unsigned int)&s1[0]);
+	printf("Address of s2: %lu\n", (long unsigned int)&s2[0]);
+	printf("Address of s3: %lu\n", (long unsigned int)&s3[0]);
 
 	printf("===== Question 12 (no code changes) =====\n");
 
 	printf("===== Question 13 =====\n");
+	printf("Content of s1: %s\n", s1);
+	printf("Content of s2: %s\n", s2);
+	printf("Content of s3: %s\n", s3);
 
 	printf("===== Question 14 =====\n");
+	if (s1 == s2) {
+		printf("s1 == s2\n");
+	} else {
+		printf("s1 != s2\n");
+	}
+
+	if (s1 == s3) {
+		printf("s1 == s3\n");
+	} else {
+		printf("s1 != s3\n");
+	}
+
+	if (s2 == s3) {
+		printf("s2 == s3\n");
+	} else {
+		printf("s2 != s3\n");
+	}
 
 	printf("===== Question 15 =====\n");
+	int s1s2 = strcmp(s1, s2);
+	int s1s3 = strcmp(s1, s3);
+	int s2s3 = strcmp(s2, s3);
+
+	if (s1s2 == 0) {
+		printf("s1 == s2\n");
+	} else {
+		printf("s1 != s2\n");
+	}
+
+	if (s1s3 == 0) {
+		printf("s1 == s3\n");
+	} else {
+		printf("s1 != s3\n");
+	}
+
+	if (s2s3 == 0) {
+		printf("s2 == s3\n");
+	} else {
+		printf("s2 != s3\n");
+	}
 
 	printf("===== Question 16 =====\n");
 	s1[1] = 'u';
+	printf("Content of s1: %s\n", s1);
+	printf("Content of s2: %s\n", s2);
+	printf("Content of s3: %s\n", s3);
 
 	printf("===== Question 17 =====\n");
+	if (s1 == s2) {
+		printf("s1 == s2\n");
+	} else {
+		printf("s1 != s2\n");
+	}
+
+	if (s1 == s3) {
+		printf("s1 == s3\n");
+	} else {
+		printf("s1 != s3\n");
+	}
+
+	if (s2 == s3) {
+		printf("s2 == s3\n");
+	} else {
+		printf("s2 != s3\n");
+	}
 
 	printf("===== Question 18 =====\n");
+	int s1ands2 = strcmp(s1, s2);
+	int s1ands3 = strcmp(s1, s3);
+	int s2ands3 = strcmp(s2, s3);
+
+	if (s1ands2 == 0) {
+		printf("s1 == s2\n");
+	} else {
+		printf("s1 != s2\n");
+	}
+
+	if (s1ands3 == 0) {
+		printf("s1 == s3\n");
+	} else {
+		printf("s1 != s3\n");
+	}
+
+	if (s2ands3 == 0) {
+		printf("s2 == s3\n");
+	} else {
+		printf("s2 != s3\n");
+	}
 }
 
 void part3() {
@@ -123,6 +218,27 @@ void part3() {
 	char s3[] = { 0x61, 0x62, 0x63, 0x64, 0x65, 0x66 };
 
 	printf("===== Question 19 =====\n");
+	int s12 = memcmp(s1, s2, sizeof(s1));
+	int s13 = memcmp(s1, s3, sizeof(s1));
+	int s23 = memcmp(s2, s3, sizeof(s2));
+
+	if (s12 == 0) {
+		printf("s1 == s2\n");
+	} else {
+		printf("s1 != s2\n");
+	}
+
+	if (s13 == 0) {
+		printf("s1 == s3\n");
+	} else {
+		printf("s1 != s3\n");
+	}
+
+	if (s23 == 0) {
+		printf("s2 == s3\n");
+	} else {
+		printf("s2 != s3\n");
+	}
 }
 
 void part4() {
@@ -130,8 +246,22 @@ void part4() {
 	char s2[] = { 'a', 'b', 'c', '\0', 'x', 'y', 'z', '\0' };
 
 	printf("===== Question 20 =====\n");
+	int s1ns2 = memcmp(s1, s2, sizeof(s1));
+
+	if (s1ns2 == 0) {
+		printf("s1 == s2\n");
+	} else {
+		printf("s1 != s2\n");
+	}
 
 	printf("===== Question 21 =====\n");
+	int s1n2 = strcmp(s1, s2);
+
+	if (s1n2 == 0) {
+		printf("s1 == s2\n");
+	} else {
+		printf("s1 != s2\n");
+	}
 
 	printf("===== Question 22 =====\n");
 	char s3[16];
