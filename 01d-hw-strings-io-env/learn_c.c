@@ -267,33 +267,65 @@ void part4() {
 	char s3[16];
 	char s4[16];
 
+	memset(s3, 0x7a, sizeof(s3));
+	memprint(s3, "%02x", sizeof(s3));
+
+	memset(s4, 0x7a, sizeof(s4));
+	memprint(s4, "%02x", sizeof(s4));
+
 	printf("===== Question 23 =====\n");
+	strcpy(s3, s1);
+	memprint(s3, "%02x", sizeof(s3));
+
 
 	printf("===== Question 24 =====\n");
 	int myval = 42;
+
+	sprintf(s4, "%s %d\n", s1, myval);
+	memprint(s4, "%02x", sizeof(s4));
+
 
 	printf("===== Question 25 =====\n");
 	char *s5;
 	char *s6 = NULL;
 	char *s7 = s4;
 
+	memprint(s1, "%02x", 8);
+	memprint(s2, "%02x", 8);
+	memprint(s3, "%02x", 8);
+	memprint(s4, "%02x", 8);
+	// memprint(s5, "%02x", 8);
+	// memprint(s6, "%02x", 8);
+	memprint(s7, "%02x", 8);
 }
 
 void part5(char *filename) {
 	printf("===== Question 26 =====\n");
+	printf("stdin: %d\n", fileno(stdin));
+	printf("stdout: %d\n", fileno(stdout));
+	printf("stderr: %d\n", fileno(stderr));
 
 	printf("===== Question 27 =====\n");
-
 	char buf[BUFSIZE];
+	memset(buf, 0x7a, sizeof(buf));
+	buf[24] = 0;
+	memprint(buf, "%02x", sizeof(buf));
 
 	printf("===== Question 28 =====\n");
+	printf("%s\n", buf);
+	write(STDOUT_FILENO, buf, BUFSIZE);
+	printf("\n");
 
 	fprintf(stderr, "===== Question 29 =====\n");
+	fprintf(stderr, "%s\n", buf);
+	write(STDERR_FILENO, buf, BUFSIZE);
+	printf("\n");
 
 	printf("===== Question 30 (no code changes) =====\n");
 
 	printf("===== Question 31 =====\n");
 	int fd1, fd2;
+	
 
 	printf("===== Question 32 =====\n");
 	size_t nread = 0;
