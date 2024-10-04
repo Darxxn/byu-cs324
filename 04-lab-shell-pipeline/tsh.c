@@ -12,6 +12,7 @@
 #include <sys/types.h>
 #include <sys/wait.h>
 #include <errno.h>
+#include <fcntl.h>
 
 /* Misc manifest constants */
 #define MAXLINE    1024   /* max line size */
@@ -27,6 +28,7 @@ char sbuf[MAXLINE];         /* for composing sprintf messages */
 
 /* Here are the functions that you will implement */
 void eval(char *cmdline);
+
 int builtin_cmd(char **argv);
 
 /* Here are helper routines that we've provided for you */
@@ -99,12 +101,130 @@ int main(int argc, char **argv)
  * immediately. Otherwise, build a pipeline of commands and wait for all of
  * them to complete before returning.
 */
-void eval(char *cmdline) 
-{
-	return;
+void eval(char *cmdline) {
+    char *argv[MAXLINE];
+    int cmds[MAXLINE];
+    int stdin_redir[MAXLINE];
+    int stdout_redir[MAXLINE];
+
+    parseline(cmdline, argv);
+    int numCmds = parseargs(argv, cmds, stdin_redir, stdout_redir);
+
+    if (builtin_cmd(argv)) {
+        return;
+    }
+
+    // single command
+    if (numCmds == 1) {
+        int pid = fork();
+        if (pid == 0) { // child
+
+            if (stdin_redir[0] != -1) {
+                int fd = open(argv[stdin_redir[0]], O_RDONLY);
+                if (fd < 0) {
+                    perror("open");
+                    exit(1);
+                }
+                dup2(fd, STDIN_FILENO);
+                close(fd);
+            }
+
+            if (stdout_redir[0] != -1) {
+                int fd = open(argv[stdout_redir[0]], O_WRONLY | O_CREAT | O_TRUNC, 0600);
+                if (fd < 0) {
+                    perror("open");
+                    exit(1);
+                }
+                dup2(fd, STDOUT_FILENO);
+                close(fd);
+            }
+
+            execve(argv[cmds[0]], &argv[cmds[0]], NULL);
+            perror("execve");
+            exit(1);
+        } else { // parent process
+            setpgid(pid, pid); // put child in process group
+            waitpid(pid, NULL, 0);
+        }
+    } else { // two or more cmds
+        int pipe_fd[2 * (numCmds - 1)];
+
+        // pipes for each command pair
+        for (int i = 0; i < numCmds - 1; i++) {
+            if (pipe(pipe_fd + i * 2) < 0) {
+                perror("pipe");
+                exit(1);
+            }
+        }
+
+        pid_t pids[numCmds]; // child process IDs
+
+
+        // create child for each command
+        for (int i = 0; i < numCmds; i++) {
+            pids[i] = fork();
+            if (pids[i] == 0) { // child
+
+                // first command input redirection
+                if (i == 0 && stdin_redir[i] != -1) {
+                    int fd = open(argv[stdin_redir[i]], O_RDONLY);
+                    if (fd < 0) {
+                        perror("open");
+                        exit(1);
+                    }
+                    dup2(fd, STDIN_FILENO);
+                    close(fd);
+                }
+
+                // last command output redirection
+                if (i == numCmds - 1 && stdout_redir[i] != -1) {
+                    int fd = open(argv[stdout_redir[i]], O_WRONLY | O_CREAT | O_TRUNC, 0600);
+                    if (fd < 0) {
+                        perror("open");
+                        exit(1);
+                    }
+                    dup2(fd, STDOUT_FILENO);
+                    close(fd);
+                }
+
+                // if != first command, set input to read end of prev pipe
+                if (i > 0) {
+                    dup2(pipe_fd[(i - 1) * 2], STDIN_FILENO);
+                }
+
+                // if != last command, set output to write end of curr pipe
+                if (i < numCmds - 1) {
+                    dup2(pipe_fd[i * 2 + 1], STDOUT_FILENO);
+                }
+
+                // close file descriptors
+                for (int j = 0; j < 2 * (numCmds - 1); j++) {
+                    close(pipe_fd[j]);
+                }
+
+                execve(argv[cmds[i]], &argv[cmds[i]], NULL);
+                perror("execve");
+                exit(1);
+            }
+        }
+
+        // parent
+        for (int i = 0; i < 2 * (numCmds - 1); i++) {
+            close(pipe_fd[i]);
+        }
+
+        // child processes to same process group
+        for (int i = 0; i < numCmds; i++) {
+            setpgid(pids[i], pids[0]);
+        }
+
+        for (int i = 0; i < numCmds; i++) {
+            waitpid(pids[i], NULL, 0);
+        }
+    }
 }
 
-/* 
+/* 	
  * parseargs - Parse the arguments to identify pipelined commands
  * 
  * Walk through each of the arguments to find each pipelined command.  If the
@@ -226,9 +346,12 @@ int parseline(const char *cmdline, char **argv)
  * builtin_cmd - If the user has typed a built-in command then execute
  *    it immediately.  
  */
-int builtin_cmd(char **argv) 
-{
-	return 0;     /* not a builtin command */
+int builtin_cmd(char **argv) {
+	if (strcmp(argv[0], "quit") == 0) {
+		exit(0);
+	}
+
+	return 0;
 }
 
 /***********************

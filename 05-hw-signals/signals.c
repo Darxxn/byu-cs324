@@ -11,12 +11,14 @@
 int foo;
 int block;
 
+// print 1, wait 4 seconds, print 2
 void sig_handler1(int signum) {
 	printf("1\n"); fflush(stdout);
 	sleep(4);
 	printf("2\n"); fflush(stdout);
 }
 
+//print 8, call sig_handler1, wait 4 seconds, print 9
 void sig_handler2(int signum) {
 	printf("8\n"); fflush(stdout);
 	kill(getpid(), SIGINT);
@@ -24,16 +26,19 @@ void sig_handler2(int signum) {
 	printf("9\n"); fflush(stdout);
 }
 
+//print foo
 void sig_handler3(int signum) {
 	printf("%d\n", foo); fflush(stdout);
 }
 
+//if foo is bigger than 0, print 6
 void sig_handler4(int signum) {
 	if (foo > 0) {
 		foo = 6;
 	}
 }
 
+//set foo to fork(), if foo is 0, print 7
 void sig_handler5(int signum) {
 	foo = fork();
 	if (foo == 0) {
@@ -41,6 +46,7 @@ void sig_handler5(int signum) {
 	}
 }
 
+//pid will wait and reap the child process, if waitpid fails, print current value of errno
 void sig_handler6(int signum) {
 	int pid, status;
 	pid = waitpid(-1, &status, WNOHANG);
@@ -49,6 +55,7 @@ void sig_handler6(int signum) {
 	}
 }
 
+//toggle block to be 0 if false, else 1
 void sig_handler7(int signum) {
 	if (block) {
 		block = 0;
@@ -57,6 +64,7 @@ void sig_handler7(int signum) {
 	}
 }
 
+//reset the handler for SIGTERM to default action (SIG_DFL)
 void sig_handler8(int signum) {
 	struct sigaction sigact;
 
@@ -65,6 +73,7 @@ void sig_handler8(int signum) {
 	sigaction(SIGTERM, &sigact, NULL);
 }
 
+//wait for child process to terminate and prints its exit status
 void sig_handler9(int signum) {
 	int status;
 	waitpid(-1, &status, 0);
