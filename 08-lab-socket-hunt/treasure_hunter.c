@@ -6,6 +6,10 @@
 #include <stdlib.h>
 #include <string.h>
 #include <arpa/inet.h>
+#include <sys/types.h>
+#include <sys/socket.h>
+#include <netdb.h>
+#include <unistd.h>
 
 #include "sockhelper.h"
 
@@ -47,6 +51,54 @@ int main(int argc, char *argv[]) {
 
 	print_bytes(message, 8);
 
+    struct addrinfo hints, *res, *rp;
+	memset(&hints, 0, sizeof(hints));
+	hints.ai_family = AF_INET;
+	hints.ai_socktype = SOCK_DGRAM;
+	
+	int s = getaddrinfo(server, port_str, &hints, &res);
+	if (s != 0) {
+		fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
+		return 1;
+	}
+
+	int sockfd;
+
+	struct sockaddr_storage remote_addr_ss;
+	struct sockaddr *remote_addr = (struct sockaddr *)&remote_addr_ss;
+
+	for (rp = res; rp != NULL; rp = rp->ai_next) {
+		sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+		if (sockfd == -1) continue;
+
+		memcpy(remote_addr, rp->ai_addr, sizeof(struct sockaddr_storage));
+		break;
+	}
+
+
+	// Send message using sendto
+	ssize_t bytes_sent = sendto(sockfd, message, sizeof(message), 0, remote_addr, sizeof(struct sockaddr_storage));
+	if (bytes_sent == -1) {
+		perror("sendto");
+	} else {
+		printf("Send %zd bytes to %s:%s\n", bytes_sent, server, port_str);
+	}
+
+	// Receive response using recvfrom
+	unsigned char response[256];
+	struct sockaddr_storage sender_addr;
+	socklen_t sender_addr_len = sizeof(sender_addr);
+	ssize_t bytes_received = recvfrom(sockfd, response, sizeof(response), 0, (struct sockaddr *)&sender_addr, &sender_addr_len);
+	if (bytes_received == -1) {
+		perror("recvfrom");
+	} else {
+		printf("Received %zd bytes from server\n", bytes_received);
+		print_bytes(response, bytes_received);
+	}
+
+	// Clean up
+	freeaddrinfo(res);
+	close(sockfd);
 
 	return 0;
 }
