@@ -3,6 +3,9 @@
 #define USERID 1823703846
 
 #include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include <arpa/inet.h>
 
 #include "sockhelper.h"
 
@@ -30,6 +33,20 @@ int main(int argc, char *argv[]) {
 	printf("Port (int): %d\n", port);
 	printf("Level: %d\n", level);
 	printf("Seed: %d\n", seed);
+
+	unsigned char message[8];
+
+	message[0] = 0;
+	message[1] = (unsigned char)level;
+
+	unsigned int user_id = htonl(USERID);
+	memcpy(&message[2], &user_id, sizeof(user_id));
+
+	unsigned short seed_network = htons(seed);
+	memcpy(&message[6], &seed_network, sizeof(seed_network));
+
+	print_bytes(message, 8);
+
 
 	return 0;
 }
