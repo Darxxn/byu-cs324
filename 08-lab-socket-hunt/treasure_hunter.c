@@ -1,6 +1,6 @@
 // Replace PUT_USERID_HERE with your actual BYU CS user id, which you can find
 // by running `id -u` on a CS lab machine.
-#define USERID PUT_USERID_HERE
+#define USERID 1823703846
 
 #include <stdio.h>
 
@@ -10,9 +10,39 @@ int verbose = 0;
 
 void print_bytes(unsigned char *bytes, int byteslen);
 
+/*
+port, level, and seed are numerical values and should be stored as type int
+keep a string verision of port as well (needed for getaddrinfo())
+
+store each argument provided on command line to main() in variables
+*/
 int main(int argc, char *argv[]) {
+	char *server = argv[1];
+
+	char *port_str = argv[2];
+	int port = atoi(port_str);
+
+	int level = atoi(argv[3]);
+	int seed = atoi(argv[4]);
+
+	printf("Server: %s\n", server);
+	printf("Port (string): %s\n", port_str);
+	printf("Port (int): %d\n", port);
+	printf("Level: %d\n", level);
+	printf("Seed: %d\n", seed);
+
+	return 0;
 }
 
+/*
+see what is in a given message that is about to be sent or has just been received
+
+called by providing:
+- pointer to a memory location ex. an array of unsigned char
+- a length
+
+then prints the hexadecimal value for each byte, as well as the ASCII character equivalent for values less than 128 (very similar to memprint())
+*/
 void print_bytes(unsigned char *bytes, int byteslen) {
 	int i, j, byteslen_adjusted;
 
