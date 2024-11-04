@@ -75,7 +75,6 @@ int main(int argc, char *argv[]) {
 		break;
 	}
 
-
 	// Send message using sendto
 	ssize_t bytes_sent = sendto(sockfd, message, sizeof(message), 0, remote_addr, sizeof(struct sockaddr_storage));
 	if (bytes_sent == -1) {
