@@ -26,18 +26,16 @@ store each argument provided on command line to main() in variables
 int main(int argc, char *argv[]) {
 	// Checkpoint 0
 	char *server = argv[1];
-
 	char *port_str = argv[2];
 	int port = atoi(port_str);
-
 	int level = atoi(argv[3]);
 	int seed = atoi(argv[4]);
 
-	printf("server: %s\n", server);
-	printf("port (string): %s\n", port_str);
-	printf("port (int): %d\n", port);
-	printf("level: %d\n", level);
-	printf("seed: %d\n", seed);
+	// printf("server: %s\n", server);
+	// printf("port (string): %s\n", port_str);
+	// printf("port (int): %d\n", port);
+	// printf("level: %d\n", level);
+	// printf("seed: %d\n", seed);
 
 	// Checkpoint 1
 	unsigned char message[8];
@@ -54,8 +52,8 @@ int main(int argc, char *argv[]) {
 	unsigned short seed_network = htons(seed);
 	memcpy(&message[6], &seed_network, sizeof(seed_network));
 
-	print_bytes(message, 8);
-	printf("\n");
+	// print_bytes(message, 8);
+	// printf("\n");
 
 	// Checkpoint 2
     struct addrinfo hints, *res, *rp;
@@ -87,29 +85,85 @@ int main(int argc, char *argv[]) {
 
 	// Send message using sendto
 	ssize_t bytes_sent = sendto(sockfd, message, sizeof(message), 0, remote_addr, sizeof(struct sockaddr_storage));
-
 	if (bytes_sent == -1) {
 		perror("sendto error\n");
+		freeaddrinfo(res);
+		close(sockfd);
+		return 1;
 	}
-	else {
-		printf("Sent %zd bytes to %s: %s\n", bytes_sent, server, port_str);
+	// else {
+	// 	printf("Sent %zd bytes to %s: %s\n", bytes_sent, server, port_str);
+	// }
+
+	char treasure[1024] = {0};
+    int treasure_length = 0;
+
+	while (1) {
+		// Receive response using recvfrom
+		unsigned char response[256];
+		struct sockaddr_storage sender_addr;
+		socklen_t sender_addr_len = sizeof(sender_addr);
+		ssize_t bytes_received = recvfrom(sockfd, response, sizeof(response), 0, (struct sockaddr *)&sender_addr, &sender_addr_len);
+
+		if (bytes_received == -1) {
+			perror("recvfrom");
+			freeaddrinfo(res);
+			close(sockfd);
+			return 1;
+		}
+		// else {
+		// 	printf("Received %zd bytes from server\n", bytes_received);
+		// 	printf("\n");
+		// 	print_bytes(response, bytes_received);
+		// 	printf("\n");
+		// }
+
+		// Checkpoint 3
+		unsigned char chunklen = response[0];
+		if (chunklen == 0) {
+			// printf("The hunt is over. All chunks received.\n");
+			break;
+		} else if (chunklen > 127) {
+			printf("Error code received: 0x%x\n", chunklen);
+			freeaddrinfo(res);
+			close(sockfd);
+			return 1;
+		}
+
+		char chunk[128];
+		memcpy(chunk, &response[1], chunklen);
+		chunk[chunklen] = '\0';
+		
+		// Append chunk to treasure
+		strcat(treasure, chunk);
+		treasure_length += chunklen;
+
+		unsigned char opcode = response[chunklen + 1];
+		unsigned short opparam = ntohs(*(unsigned short *)&response[chunklen + 2]);
+		unsigned int nonce = ntohl(*(unsigned int *)&response[chunklen + 4]);
+
+		// printf("Chunk Length: %x\n", chunklen);
+		// printf("Treasure Chunk: %s\n", chunk);
+		// printf("Op Code: %x\n", opcode);
+		// printf("Op Param: %x\n", opparam);  // Ignored for level 0
+		// printf("Nonce: %x\n", nonce);
+		
+		unsigned int next_nonce = htonl(nonce + 1);
+		unsigned char follow_up_message[4];
+		memcpy(follow_up_message, &next_nonce, sizeof(next_nonce));
+
+		// print_bytes(follow_up_message, 4);  // Debug: Ensure correct format of follow-up message
+        bytes_sent = sendto(sockfd, follow_up_message, sizeof(follow_up_message), 0, remote_addr, sizeof(struct sockaddr_storage));
+
+        if (bytes_sent == -1) {
+            perror("sendto error on follow-up");
+            freeaddrinfo(res);
+            close(sockfd);
+            return 1;
+		}
 	}
 
-	// Receive response using recvfrom
-	unsigned char response[256];
-	struct sockaddr_storage sender_addr;
-	socklen_t sender_addr_len = sizeof(sender_addr);
-	ssize_t bytes_received = recvfrom(sockfd, response, sizeof(response), 0, (struct sockaddr *)&sender_addr, &sender_addr_len);
-	printf("\n");
-	if (bytes_received == -1) {
-		perror("recvfrom");
-	} else {
-		printf("Received %zd bytes from server\n", bytes_received);
-		print_bytes(response, bytes_received);
-	}
-
-	// Checkpoint 3
-	
+	printf("%s\n", treasure);
 
 	// Clean up
 	freeaddrinfo(res);
