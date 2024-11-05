@@ -126,7 +126,7 @@ int main(int argc, char *argv[]) {
         if (opcode == 1) {
             remote_port = opparam;
             populate_sockaddr(remote_addr, rp->ai_family, remote_ip, remote_port);
-        } else if (opcode == 2) {
+        } else if (opcode == 2) { // Checkpoint 8
 			local_port = opparam;
 			close(sockfd);
 
@@ -144,8 +144,28 @@ int main(int argc, char *argv[]) {
                 close(sockfd);
                 return 1;
             }
-		}
-		
+		} else if (opcode == 3) { // Checkpoint 9
+			unsigned int nonce_sum = 0;
+			for (int i = 0; i < opparam; i++) {
+				struct sockaddr_storage temp_addr;
+				socklen_t temp_addr_len = sizeof(temp_addr);
+
+				ssize_t temp_bytes_received = recvfrom(sockfd, NULL, 0, 0, (struct sockaddr *)&temp_addr, &temp_addr_len);
+				if (temp_bytes_received == -1) {
+					perror("recvfrom error for op-code 3\n");
+                    freeaddrinfo(res);
+                    close(sockfd);
+                    return 1;
+				}
+
+				struct sockaddr_in *temp_in = (struct sockaddr_in *)&temp_addr;
+				unsigned short temp_port = ntohs(temp_in->sin_port);
+				nonce_sum += temp_port;
+			}
+
+			nonce = nonce_sum;
+        }
+
 		unsigned int next_nonce = htonl(nonce + 1);
 		unsigned char follow_up_message[4];
 		memcpy(follow_up_message, &next_nonce, sizeof(next_nonce));
