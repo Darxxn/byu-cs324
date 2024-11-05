@@ -10,7 +10,6 @@
 #include <sys/socket.h>
 #include <netdb.h>
 #include <unistd.h>
-
 #include "sockhelper.h"
 
 int verbose = 0;
@@ -31,12 +30,6 @@ int main(int argc, char *argv[]) {
 	int level = atoi(argv[3]);
 	int seed = atoi(argv[4]);
 
-	// printf("server: %s\n", server);
-	// printf("port (string): %s\n", port_str);
-	// printf("port (int): %d\n", port);
-	// printf("level: %d\n", level);
-	// printf("seed: %d\n", seed);
-
 	// Checkpoint 1
 	unsigned char message[8];
 
@@ -52,14 +45,13 @@ int main(int argc, char *argv[]) {
 	unsigned short seed_network = htons(seed);
 	memcpy(&message[6], &seed_network, sizeof(seed_network));
 
-	// print_bytes(message, 8);
-	// printf("\n");
-
 	// Checkpoint 2
     struct addrinfo hints, *res, *rp;
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_DGRAM;
+	char remote_ip[INET6_ADDRSTRLEN];
+    unsigned short remote_port;
 	
 	int s = getaddrinfo(server, port_str, &hints, &res);
 	if (s != 0) {
@@ -76,8 +68,6 @@ int main(int argc, char *argv[]) {
 		if (sockfd == -1) continue;
 		memcpy(remote_addr, rp->ai_addr, sizeof(struct sockaddr_storage));
 
-		char remote_ip[INET6_ADDRSTRLEN];
-		unsigned short remote_port;
 	    parse_sockaddr((struct sockaddr *)rp->ai_addr, remote_ip, &remote_port);
 		populate_sockaddr(remote_addr, rp->ai_family, remote_ip, remote_port);
 		break;
@@ -91,9 +81,6 @@ int main(int argc, char *argv[]) {
 		close(sockfd);
 		return 1;
 	}
-	// else {
-	// 	printf("Sent %zd bytes to %s: %s\n", bytes_sent, server, port_str);
-	// }
 
 	char treasure[1024] = {0};
     int treasure_length = 0;
@@ -111,17 +98,10 @@ int main(int argc, char *argv[]) {
 			close(sockfd);
 			return 1;
 		}
-		// else {
-		// 	printf("Received %zd bytes from server\n", bytes_received);
-		// 	printf("\n");
-		// 	print_bytes(response, bytes_received);
-		// 	printf("\n");
-		// }
 
 		// Checkpoint 3
 		unsigned char chunklen = response[0];
 		if (chunklen == 0) {
-			// printf("The hunt is over. All chunks received.\n");
 			break;
 		} else if (chunklen > 127) {
 			printf("Error code received: 0x%x\n", chunklen);
@@ -142,18 +122,16 @@ int main(int argc, char *argv[]) {
 		unsigned short opparam = ntohs(*(unsigned short *)&response[chunklen + 2]);
 		unsigned int nonce = ntohl(*(unsigned int *)&response[chunklen + 4]);
 
-		// printf("Chunk Length: %x\n", chunklen);
-		// printf("Treasure Chunk: %s\n", chunk);
-		// printf("Op Code: %x\n", opcode);
-		// printf("Op Param: %x\n", opparam);  // Ignored for level 0
-		// printf("Nonce: %x\n", nonce);
+        if (opcode == 1) {
+            remote_port = opparam;
+            populate_sockaddr(remote_addr, rp->ai_family, remote_ip, remote_port);
+        }
 		
 		unsigned int next_nonce = htonl(nonce + 1);
 		unsigned char follow_up_message[4];
 		memcpy(follow_up_message, &next_nonce, sizeof(next_nonce));
 
-		// print_bytes(follow_up_message, 4);  // Debug: Ensure correct format of follow-up message
-        bytes_sent = sendto(sockfd, follow_up_message, sizeof(follow_up_message), 0, remote_addr, sizeof(struct sockaddr_storage));
+		bytes_sent = sendto(sockfd, follow_up_message, sizeof(follow_up_message), 0, remote_addr, sizeof(struct sockaddr_storage));
 
         if (bytes_sent == -1) {
             perror("sendto error on follow-up");
