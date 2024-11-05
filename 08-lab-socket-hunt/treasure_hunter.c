@@ -32,10 +32,7 @@ int main(int argc, char *argv[]) {
 
 	// Checkpoint 1
 	unsigned char message[8];
-
-	// initialize buf to 0
-	bzero(message, 8);
-
+	bzero(message, 8); 	// initialize buf to 0
 	message[0] = 0;
 	message[1] = level;
 
@@ -50,8 +47,10 @@ int main(int argc, char *argv[]) {
 	memset(&hints, 0, sizeof(hints));
 	hints.ai_family = AF_INET;
 	hints.ai_socktype = SOCK_DGRAM;
+
 	char remote_ip[INET6_ADDRSTRLEN];
     unsigned short remote_port;
+	unsigned short local_port = 0;
 	
 	int s = getaddrinfo(server, port_str, &hints, &res);
 	if (s != 0) {
@@ -60,8 +59,9 @@ int main(int argc, char *argv[]) {
 	}
 
 	int sockfd;
-	struct sockaddr_storage remote_addr_ss;
+	struct sockaddr_storage remote_addr_ss, local_addr_ss;
 	struct sockaddr *remote_addr = (struct sockaddr *)&remote_addr_ss;
+    struct sockaddr *local_addr = (struct sockaddr *)&local_addr_ss;
 
 	for (rp = res; rp != NULL; rp = rp->ai_next) {
 		sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
@@ -122,10 +122,29 @@ int main(int argc, char *argv[]) {
 		unsigned short opparam = ntohs(*(unsigned short *)&response[chunklen + 2]);
 		unsigned int nonce = ntohl(*(unsigned int *)&response[chunklen + 4]);
 
+		// Checkpoint 7
         if (opcode == 1) {
             remote_port = opparam;
             populate_sockaddr(remote_addr, rp->ai_family, remote_ip, remote_port);
-        }
+        } else if (opcode == 2) {
+			local_port = opparam;
+			close(sockfd);
+
+			sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+			if (sockfd == -1) {
+				perror("socket creation error after op-code 2\n");
+				freeaddrinfo(res);
+				return 1;
+			}
+
+			populate_sockaddr(local_addr, rp->ai_family, NULL, local_port);
+			if (bind(sockfd, local_addr, sizeof(struct sockaddr_storage)) < 0) {
+                perror("bind error after op-code 2\n");
+                freeaddrinfo(res);
+                close(sockfd);
+                return 1;
+            }
+		}
 		
 		unsigned int next_nonce = htonl(nonce + 1);
 		unsigned char follow_up_message[4];
