@@ -51,6 +51,7 @@ int main(int argc, char *argv[]) {
 	char remote_ip[INET6_ADDRSTRLEN];
     unsigned short remote_port;
 	unsigned short local_port = 0;
+	int addr_fam = AF_INET;
 	
 	int s = getaddrinfo(server, port_str, &hints, &res);
 	if (s != 0) {
@@ -164,7 +165,34 @@ int main(int argc, char *argv[]) {
 			}
 
 			nonce = nonce_sum;
-        }
+        } else if (opcode == 4) { // Checkpoint 10
+			remote_port = opparam;
+			addr_fam = (addr_fam == AF_INET) ? AF_INET6 : AF_INET;
+
+			char new_port_str[6];
+			sprintf(new_port_str, "%u", remote_port);
+
+			hints.ai_family = addr_fam;
+			freeaddrinfo(res);
+
+			s = getaddrinfo(server, new_port_str, &hints, &res);
+			if (s != 0) {
+				fprintf(stderr, "getaddrinfo: %s\n", gai_strerror(s));
+				close(sockfd);
+				return 1;
+			}
+
+			close(sockfd);
+
+			for (rp = res; rp != NULL; rp = rp->ai_next) {
+				sockfd = socket(rp->ai_family, rp->ai_socktype, rp->ai_protocol);
+                if (sockfd == -1) continue;
+                memcpy(remote_addr, rp->ai_addr, sizeof(struct sockaddr_storage));
+                parse_sockaddr((struct sockaddr *)rp->ai_addr, remote_ip, &remote_port);
+                populate_sockaddr(remote_addr, rp->ai_family, remote_ip, remote_port);
+                break;
+			}
+		}
 
 		unsigned int next_nonce = htonl(nonce + 1);
 		unsigned char follow_up_message[4];
